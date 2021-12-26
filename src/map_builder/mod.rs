@@ -6,6 +6,10 @@ fn in_bounds(p: Point) -> bool {
     p.x > 0 && p.x < SCREEN_WIDTH && p.y > 0 && p.y < SCREEN_HEIGHT
 }
 
+trait MapArchitect {
+    fn new(&mut self, rng: &mut RandomNumberGenerator) -> MapBuilder;
+}
+
 pub struct MapBuilder {
     pub map: Map,
     pub rooms: Vec<Rect>,
@@ -16,6 +20,24 @@ pub struct MapBuilder {
 impl MapBuilder {
     fn fill(&mut self, tile: TileType) {
         self.map.tiles.iter_mut().for_each(|t| *t = tile);
+    }
+
+    fn find_most_distant(&self) -> Point {
+        let dm = DijkstraMap::new(
+            SCREEN_HEIGHT,
+            SCREEN_WIDTH,
+            &vec![self.map.point2d_to_index(self.player_start)],
+            &self.map,
+            1024.0
+        );
+        self.map.index_to_point2d(
+            dm.map
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, dist)| *dist < UNREACHABLE)
+                    .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                    .unwrap().0
+        )
     }
 
     fn build_random_rooms(&mut self, rng: &mut RandomNumberGenerator) {
